@@ -4,8 +4,9 @@ import pickle
 from nltk import sent_tokenize
 from progress import printProgressBar
 import pandas as pd
+import config
 
-nlp = StanfordCoreNLP('http://localhost:9000')
+nlp = StanfordCoreNLP(config.corenlppath)
 
 def saveWindowFeaturesTrain(text, word_list, win_size):
 
@@ -84,6 +85,7 @@ def getWindowFeaturesTest(para, blank, noof_blanks, word_list, win_size):
 
                     if(word_index+i<=totalwords):
                         feature[win_size + i] = sent['tokens'][word_index+i-1]["pos"]
+                features.append(feature)
 
 
 

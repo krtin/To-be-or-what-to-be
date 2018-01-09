@@ -3,8 +3,9 @@ from collections import defaultdict, Counter
 import pickle
 from nltk import sent_tokenize
 from progress import printProgressBar
+import config
 
-nlp = StanfordCoreNLP('http://localhost:9000')
+nlp = StanfordCoreNLP(config.corenlppath)
 
 def getWindowFeaturesTrain(text, word_list):
 

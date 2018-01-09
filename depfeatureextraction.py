@@ -3,19 +3,49 @@ from collections import defaultdict, Counter
 import pickle
 from nltk import sent_tokenize
 from progress import printProgressBar
+import config
 
-nlp = StanfordCoreNLP('http://localhost:9000')
+nlp = StanfordCoreNLP(config.corenlppath)
+
+def getFeatures(currentdepth, maxdepth, features, node, parsed_sent):
+
+    #set the current gov index
+    gov_index = node["governor"]
+    #if we reach root break
+    if(gov_index==0):
+        return features
+    gov = parsed_sent['tokens'][gov_index-1]
+    if(gov_index!=gov['index']):
+        raise Exception('Governor Index dont match')
+    gov_pos = gov['pos']
+    dep = node["dep"]
+    features[dep] = gov_pos
+    #print(currentdepth, features)
 
 
-def getDepFeaturesTrain(text, word_list):
+    if(currentdepth<maxdepth):
+        for node_item in parsed_sent['basicDependencies']:
+            if(node_item["dependent"]==gov_index):
+
+                ret_features = getFeatures(currentdepth+1, maxdepth, {}, node_item, parsed_sent)
+                #print(ret_features)
+                features.update(ret_features)
+
+    return features
+
+
+def saveTreeFeaturesTrain(text, word_list, depth):
 
     sents = sent_tokenize(text)
     flag = 0
     counts = Counter()
     progress = 0
     totalen = len(sents)
-    depth = 2
+    features = []
+    ignore_deps = ["punct", "cc"]
+    featvocab = set({"NaN"})
     for sent in sents:
+
         parsed_sents = nlp.annotate(sent, properties={
                   'annotators': 'tokenize,ssplit,pos,depparse',
                   'outputFormat': 'json'
@@ -24,46 +54,57 @@ def getDepFeaturesTrain(text, word_list):
         for parsed_sent in parsed_sents['sentences']:
             for item in parsed_sent['basicDependencies']:
                 if(item["dependentGloss"] in word_list):
-
-
-                    feature = ["None" for x in range(2+depth)]
+                    feature = {}
+                    #print(sent)
+                    #print(parsed_sent['basicDependencies'])
                     #the first feature is always the word itself
-                    feature[0] = item["dependentGloss"]
-                    #second feature is always the dependency of the word
-                    feature[1] = item["dep"]
-                    #set the current gov index
-                    gov_index = item["governor"]
+                    feature["y"] = item["dependentGloss"]
 
-                    #keep on finding parent till you reach depth
-                    for i in range(depth):
-                        #if we reach root break
-                        if(gov_index==0):
-                            break
-                    dep = item["dep"]
+                    gov_index = item["governor"]
+                    #if we reach root break
+                    if(gov_index==0):
+                        continue
                     gov = parsed_sent['tokens'][gov_index-1]
                     if(gov_index!=gov['index']):
                         raise Exception('Governor Index dont match')
                     gov_pos = gov['pos']
-                    word =
-                    #print(sent)
-                    #print(word, dep, gov_pos)
-                    counts[dep, gov_pos, word] += 1
-                    flag=1
-                    break
+                    dep = "p_"+item["dep"]
+                    feature[dep] = gov_pos
+                    featvocab.add(gov_pos)
+
+                    for node_item in parsed_sent['basicDependencies']:
+                        if(node_item["governor"]==gov_index and node_item["dependent"]!=item['dependent']):
+                            #print(node_item)
+                            dep = node_item["dep"]
+                            if(dep in ignore_deps):
+                                continue
+                            dep_index = node_item["dependent"]
+                            dep_item = parsed_sent['tokens'][dep_index-1]
+                            if(dep_index!=dep_item['index']):
+                                raise Exception('Dependency Index dont match')
+                            pos = dep_item["pos"]
+                            feature[dep] = pos
+                            featvocab.add(pos)
+
+                    #features = getFeatures(1, depth, feature, item, parsed_sent)
+                    features.append(feature)
+                    #flag+=1
+                    #break
                     #params[word["originalText"]][]
 
-        if(flag):
-            break
+        #if(flag==6):
+        #    break
         progress += 1
         printProgressBar(progress, totalen)
 
-    #with open("deptree_level2_counts.pkl", 'wb') as modelfile:
-    #    pickle.dump(counts, modelfile)
+    #print(featvocab)
+    with open("dataset_dtree_train.pkl", 'wb') as modelfile:
+        pickle.dump([features, featvocab], modelfile)
 
 
 
 
-def getDepFeaturesTest(para, blank, noof_blanks, word_list):
+def getDepFeaturesTest(para, blank, noof_blanks, word_list, depth=2):
 
 
     tokenized_para = nlp.annotate(para, properties={
@@ -99,20 +140,46 @@ def getDepFeaturesTest(para, blank, noof_blanks, word_list):
 
 
     features = []
-
+    ignore_deps = ["punct", "cc"]
     for sent in parsed_para['sentences']:
 
         if(len(searched_blanks[sent['index']])>0):
             for item in sent['basicDependencies']:
                 for searched_pos in searched_blanks[sent['index']]:
                     if(item['dependent']==searched_pos):
-                        dep = item['dep']
-                        gov_index = item['governor']
+
+                        feature = {}
+                        #print(sent)
+                        #print(parsed_sent['basicDependencies'])
+                        #the first feature is always the word itself
+                        feature["y"] = item["dependentGloss"]
+
+                        gov_index = item["governor"]
+                        #if we reach root break
+                        if(gov_index==0):
+                            continue
                         gov = sent['tokens'][gov_index-1]
                         if(gov_index!=gov['index']):
-                            raise Exception('Governer Index dont match')
+                            raise Exception('Governor Index dont match')
                         gov_pos = gov['pos']
-                        features.append({"dep":dep, "gov_pos":gov_pos})
+                        dep = "p_"+item["dep"]
+                        feature[dep] = gov_pos
+
+                        for node_item in sent['basicDependencies']:
+                            if(node_item["governor"]==gov_index and node_item["dependent"]!=item['dependent']):
+                                #print(node_item)
+                                dep = node_item["dep"]
+                                if(dep in ignore_deps):
+                                    continue
+                                dep_index = node_item["dependent"]
+                                dep_item = sent['tokens'][dep_index-1]
+                                if(dep_index!=dep_item['index']):
+                                    raise Exception('Dependency Index dont match')
+                                pos = dep_item["pos"]
+                                feature[dep] = pos
+
+                        #features = getFeatures(1, depth, feature, item, parsed_sent)
+                        features.append(feature)
                         searched_blanks[sent['index']].remove(searched_pos)
 
                 if(len(searched_blanks[sent['index']])==0):

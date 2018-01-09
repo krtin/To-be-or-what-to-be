@@ -5,7 +5,10 @@ import pickle
 import train_deptree as traindtrees
 import train_window as trainwindow
 import windowfeatureextraction as winfeatext
+import depfeatureextraction as dtreefeatext
 import numpy as np
+import models
+
 possible_words = ['am','are','were','was','is','been','being','be']
 
 #corpus = "When the modern Olympics began in 1896, the initiators and organizers were looking for a great popularizing event, recalling the ancient glory of Greece."
@@ -32,7 +35,13 @@ if(os.path.exists("dataset_window_train.pkl") is False):
     print("Creating Dataset using windowing on corpus")
     with open('corpus.txt', 'r') as f:
         corpus = f.read()
-    winfeatext.saveWindowFeaturesTrain(corpus, possible_words, win_size=6)
+    winfeatext.saveWindowFeaturesTrain(corpus, possible_words, win_size=8)
+
+if(os.path.exists("dataset_dtree_train.pkl") is False):
+    print("Creating Dataset using dtree on corpus")
+    with open('corpus.txt', 'r') as f:
+        corpus = f.read()
+    dtreefeatext.saveTreeFeaturesTrain(corpus, possible_words, depth=2)
 
 
 with open("deptree_level1_counts.pkl", 'rb') as modelfile:
@@ -53,10 +62,19 @@ for counter_key in window_counts.keys():
     #print(counter_key, deptree_counts[counter_key])
     window_word_counts[counter_key[2]] += window_counts[counter_key]
 
-
+sm = models.simplemodel()
+sm.train()
+dtreemodel = models.simplemodel("dtree")
+dtreemodel.train()
 
 dep_total_correct = 0
 win_total_correct = 0
+mlmodel_total_correct = 0
+dtreemodel_total_correct = 0
+dep_hrank = 0
+win_hrank = 0
+mlmodel_hrank = 0
+dtreemodel_hrank = 0
 testlen = 0
 
 for inputfile, outputfile in zip(sorted(inputfiles), sorted(outputfiles)):
@@ -67,8 +85,11 @@ for inputfile, outputfile in zip(sorted(inputfiles), sorted(outputfiles)):
     with open(os.path.join(outputdir, outputfile), 'r') as f:
         labels = f.read().strip('\n').split('\n')
 
+    wind_ext_feats = winfeatext.getWindowFeaturesTest(para, '----', noof_blanks, possible_words, win_size=8)
+    dtree_ext_feats = dtreefeatext.getDepFeaturesTest(para, '----', noof_blanks, possible_words, depth=2)
 
-'''
+
+
     window_features = trainwindow.getWindowFeaturesTest(para, '----', noof_blanks, possible_words)
 
 
@@ -76,8 +97,10 @@ for inputfile, outputfile in zip(sorted(inputfiles), sorted(outputfiles)):
 
     correct = 0
     win_correct = 0
+    mlmodel_correct = 0
+    dtreemodel_correct = 0
 
-    for feature, label, win_feature in zip(features, labels, window_features):
+    for feature, label, win_feature, wind_ext_feat, dtree_ext_feat in zip(features, labels, window_features, wind_ext_feats, dtree_ext_feats):
         max_prob = 0
         prediction = ""
         max_feat = ""
@@ -110,6 +133,13 @@ for inputfile, outputfile in zip(sorted(inputfiles), sorted(outputfiles)):
                 win_max_prob = win_curr_prob
                 win_pred = word
 
+        #prediction through ml model
+        wind_ext_feat[0] = label
+
+        [mlmodel_pred, mlmodel_prob]= sm.predict(wind_ext_feat)
+        [dtreemodel_predict, dtree_prob] = dtreemodel.predict(dtree_ext_feat)
+
+
         if(sum_count_win!=0):
             win_max_prob = float(win_max_prob)/float(sum_count_win)
         if(sum_count_dep!=0):
@@ -124,16 +154,30 @@ for inputfile, outputfile in zip(sorted(inputfiles), sorted(outputfiles)):
         if(prediction==label):
             correct += 1
 
+        if(mlmodel_pred==label):
+            mlmodel_correct += 1
+
+        if(dtreemodel_predict==label):
+            dtreemodel_correct += 1
+
 
 
         #print(prediction, win_pred, label, max_feat, max_prob, win_max_prob, sum_count_win)
 
     #print("Accuracy for Dep and window: %d out of %d (%.2f)"%(correct, noof_blanks, float(correct)/float(noof_blanks)))
     #print("Accuracy for Window: %d out of %d (%.2f)"%(win_correct, noof_blanks, float(win_correct)/float(noof_blanks)))
+
+    dep_hrank += float(correct)/float(noof_blanks)*10.
+    win_hrank += float(win_correct)/float(noof_blanks)*10.
+    mlmodel_hrank += float(mlmodel_correct)/float(noof_blanks)*10.
+    dtreemodel_hrank += float(dtreemodel_correct)/float(noof_blanks)*10.
     dep_total_correct += correct
     win_total_correct += win_correct
+    mlmodel_total_correct += mlmodel_correct
+    dtreemodel_total_correct += dtreemodel_correct
     testlen += noof_blanks
 
-print("Accuracy for Dep and window: %d out of %d (%.2f)"%(dep_total_correct, testlen, float(dep_total_correct)/float(testlen)*100.))
-print("Accuracy for Window: %d out of %d (%.2f)"%(win_total_correct, testlen, float(win_total_correct)/float(testlen)*100.))
-'''
+print("Accuracy for Dep and window: %d out of %d (%.2f) Hackerrank score: %d"%(dep_total_correct, testlen, float(dep_total_correct)/float(testlen)*100., dep_hrank))
+print("Accuracy for Window: %d out of %d (%.2f) Hackerrank score: %d"%(win_total_correct, testlen, float(win_total_correct)/float(testlen)*100., win_hrank))
+print("Accuracy for Window ML Model: %d out of %d (%.2f) Hackerrank score: %d"%(mlmodel_total_correct, testlen, float(mlmodel_total_correct)/float(testlen)*100., mlmodel_hrank))
+print("Accuracy for Dep ML Model: %d out of %d (%.2f) Hackerrank score: %d"%(dtreemodel_total_correct, testlen, float(dtreemodel_total_correct)/float(testlen)*100., dtreemodel_hrank))
