@@ -12,7 +12,23 @@
 	<li>Run main.py in python3</li>
 </ol>
 
-<h2>Intuition</h2>
+<h2>Method and Intuition</h2>
+<h3>General Idea</h3>
+<p></p>
+
+<h3>Models Tested</h3>
+<ol>
+	<li><strong>Probability Model using Windowing:</strong></li>
+	<li><strong>Probability Model using Dependency Parsing and Windowing:</strong></li>
+	<li><strong>Decision Tree Classifier using Windowing:</strong></li>
+	<li><strong>Decision Tree Classifier using Dependency Parsing:</strong></li>
+</ol>
+
+<h3>Further improvements</h3>
+<ol>
+	<li>Delete all .pkl files</li>
+	<li>Run main.py in python3</li>
+</ol>
 
 
 <h2>Requirements</h2>
