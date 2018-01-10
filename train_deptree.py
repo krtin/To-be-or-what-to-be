@@ -7,7 +7,7 @@ import config
 
 nlp = StanfordCoreNLP(config.corenlppath)
 
-
+#save counts for the Dependency of target word and pos tag of its parent
 def getDepFeaturesTrain(text, word_list):
 
     sents = sent_tokenize(text)
@@ -51,7 +51,7 @@ def getDepFeaturesTrain(text, word_list):
 
 
 
-
+#find counts for test one input at time
 def getDepFeaturesTest(para, blank, noof_blanks, word_list):
 
 

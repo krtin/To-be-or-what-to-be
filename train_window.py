@@ -7,6 +7,7 @@ import config
 
 nlp = StanfordCoreNLP(config.corenlppath)
 
+#save pos counts for window of size 2
 def getWindowFeaturesTrain(text, word_list):
 
     sents = sent_tokenize(text)
@@ -58,7 +59,7 @@ def getWindowFeaturesTrain(text, word_list):
     with open("window_size2_counts.pkl", 'wb') as modelfile:
         pickle.dump(counts, modelfile)
 
-
+#find counts for test one input at time
 def getWindowFeaturesTest(para, blank, noof_blanks, word_list):
 
     tagged_para = nlp.annotate(para, properties={

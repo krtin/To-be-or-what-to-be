@@ -8,6 +8,7 @@ import config
 
 nlp = StanfordCoreNLP(config.corenlppath)
 
+#extract pos tags as feature for given window size, window size is for only one side
 def saveWindowFeaturesTrain(text, word_list, win_size):
 
     sents = sent_tokenize(text)
@@ -58,7 +59,7 @@ def saveWindowFeaturesTrain(text, word_list, win_size):
     with open("dataset_window_train.pkl", 'wb') as modelfile:
         pickle.dump([traindata, featvocab], modelfile)
 
-
+#extract feature from single instance of test input can contain multiple blanks
 def getWindowFeaturesTest(para, blank, noof_blanks, word_list, win_size):
 
     tagged_para = nlp.annotate(para, properties={

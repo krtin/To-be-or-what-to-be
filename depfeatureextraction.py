@@ -7,6 +7,7 @@ import config
 
 nlp = StanfordCoreNLP(config.corenlppath)
 
+#this is not being used currently
 def getFeatures(currentdepth, maxdepth, features, node, parsed_sent):
 
     #set the current gov index
@@ -33,7 +34,7 @@ def getFeatures(currentdepth, maxdepth, features, node, parsed_sent):
 
     return features
 
-
+#extracts the Dependency of the parent word and all other children of the parent, the Dependency is used as a feature type and pos tag is used as feature value
 def saveTreeFeaturesTrain(text, word_list, depth):
 
     sents = sent_tokenize(text)
@@ -103,7 +104,8 @@ def saveTreeFeaturesTrain(text, word_list, depth):
 
 
 
-
+#does the same feature extraction but for incoming single instance of testset
+#Dependency of target blank is found by replacing one of the possible words assuming it will have minimum effect on Dependency
 def getDepFeaturesTest(para, blank, noof_blanks, word_list, depth=2):
 
 
