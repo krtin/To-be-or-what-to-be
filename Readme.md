@@ -26,8 +26,9 @@
 
 <h3>Further improvements</h3>
 <ol>
-	<li>Delete all .pkl files</li>
-	<li>Run main.py in python3</li>
+	<li><strong>Combined Features:</strong></li>
+	<li><strong>Better Features:</strong></li>
+	<li><strong>Neural Model:</strong></li>
 </ol>
 
 
